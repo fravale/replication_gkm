@@ -1,0 +1,341 @@
+clear
+set verbose off
+
+################################################
+
+# Riccardo "Jack" Lucchetti and Francesco Valentini
+# "Kernel-based Time-Varying IV estimation: handle with care"
+
+# Replication of the paper: "Time-varying instrumental variable estimation"
+# Liudas Giraitis, George Kapetanios, Massimiliano Marcellino
+# Journal of Econometrics
+# https://doi.org/10.1016/j.jeconom.2020.08.013
+
+#############################################
+
+
+## SELECT FIGURE NUMBER {1,2,3,4,5,6,7,C1,D2}
+
+nfig = "3" #insert figure number as string
+
+## Note: generating Figure 4 may take a time longer than expected (a few seconds), \
+## since the optimal bandwidths need to be computed.
+
+
+
+# EMPRICAL APPLICATION
+###############################################
+#load package, extra functions and data
+include ketvals.gfn #version 0.91
+include lucchetti_valentini_replication_figures_extra.inp
+
+open fedstl.bin
+data cpiaucsl unrate
+
+series Inflation = 100 * sdiff(log(cpiaucsl))
+series d_I = diff(Inflation)
+series d_UNEMP = diff(unrate)
+
+################################################
+
+
+if nfig=="1" ## FIGURE 1
+
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1959:02 2013:07
+
+    ker = 1 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    loop i = 2 .. nelem(COVAR)
+        plot_ols_vs_iv(bols, biv, i, 0.9,0,i,0)
+    endloop
+
+
+    # Plot Hausman Test p-value
+    series A = 0.05
+    series Ase = 0.05
+    series Hp = biv.Hpval
+    gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+
+    #NKPC
+    smpl full
+
+    list COVAR = const d_I(-1) d_UNEMP d_I(+1)
+    list INST = const d_I(-1 to -4) d_UNEMP(-1 to -4)
+
+    smpl 1959:02 2013:07
+
+    ker = 1     # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+
+    # Plot estimated coefficients
+    loop i = 2 .. nelem(COVAR)
+        plot_ols_vs_iv(bols, biv, i, 0.9,0,i,0)
+    endloop
+
+    # Plot Hausman Test p-value
+    series A = 0.05
+    series Ase = 0.05
+    series Hp = biv.Hpval
+    gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+
+
+elif nfig=="2" ## FIGURE 2
+
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1959:02 2013:07
+
+    ker = 1
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+
+    # Plot Hausman Test p-value
+    series A = 0.05
+    series Ase = 0.05
+    series Hp = biv.Hpval
+    gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+    # Plot Hausman Test p-value - 3 degrees of freedom
+    series A = 0.05
+    series Ase = 0.05
+    series Hs = biv.Hstat
+    series Hp3 = pvalue(X,3,Hs)
+    gnuplot Hp3 --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+
+elif nfig=="3" ## FIGURE 3
+
+    #Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1959:02 2013:07
+
+
+    ## NOTE The code exploits the following sequence of kernel functions: 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential.
+    ## The sequence reported in Figures 2, 5 and D2 (by column) is: Gaussian, Exponential, Epanechinikov and Rolling Window.
+
+    loop ker=1..4
+        band = 0.7
+        exp_par = {} # Parameters for general exponential kernel
+        bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+        biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+        # Plot estimated coefficients
+        loop i = 2 .. nelem(COVAR)
+            plot_ols_vs_iv(bols, biv, i, 0.9,0,i,3)
+        endloop
+
+        # Plot Hausman Test p-value
+        series A = 0.05
+        series Ase = 0.05
+        series Hp = biv.Hpval
+        gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+    endloop
+
+elif nfig=="4" ## FIGURE 4
+
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1959:02 2013:07
+
+    ker = 1 # Kernel type 1: Gaussian
+    band1 = NA
+    band2 = 0.5
+    biv  = tv_IV(d_I, COVAR, INST, band2, band2, 1, ker)
+    biva  = tv_IV(d_I, COVAR, INST, band1, band2, 1, ker)
+
+    loop i = 2 .. nelem(COVAR)
+        plot_iva_vs_iv(biva, biv, i, 0.9)
+    endloop
+
+    ##
+    band2 = 0.7
+    biv  = tv_IV(d_I, COVAR, INST, band2, band2, 1, ker)
+    biva  = tv_IV(d_I, COVAR, INST, band1, band2, 1, ker)
+
+    loop i = 2 .. nelem(COVAR)
+        plot_iva_vs_iv(biva, biv, i, 0.9)
+    endloop
+
+elif nfig=="5" ## FIGURE 5
+
+    #Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl  1948:06 2021:12
+
+    ## NOTE The code exploits the following sequence of kernel functions: 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential.
+    ## The sequence reported in Figures 2, 5 and D2 (by column) is: Gaussian, Exponential, Epanechinikov and Rolling Window.
+
+
+    loop ker=1..4
+        band = 0.7
+        exp_par = {} # Parameters for general exponential kernel
+        bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+        biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+        # Plot estimated coefficients
+        loop i = 2 .. nelem(COVAR)
+            plot_ols_vs_iv(bols, biv, i, 0.9,0,i,1)
+        endloop
+
+        # Plot Hausman Test p-value
+        series A = 0.05
+        series Ase = 0.05
+        series Hp = biv.Hpval
+        gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+    endloop
+
+
+elif nfig=="6" ## FIGURE 6
+
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1948:06 2020:03
+
+    ker = 1 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    coeff_plot(biv,3,0.9)
+
+    # 1 stage residuals
+    series valid = biv.valid
+    smpl valid --dummy
+    series xhat = biv.xfitted[,3]
+    series u1hat = d_UNEMP - xhat
+
+    plot u1hat
+        options --time-series --with-lines
+        literal unset ylabel
+    end plot --output=display
+
+    smpl 1948:06 2021:12
+
+    ker = 1 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    coeff_plot(biv,3,0.9)
+
+    # 1 stage residuals
+    series valid = biv.valid
+    smpl valid --dummy
+    series xhat = biv.xfitted[,3]
+    series u1hat = d_UNEMP - xhat
+
+    plot u1hat
+        options --time-series --with-lines
+        literal unset ylabel
+    end plot --output=display
+
+
+elif nfig=="7" #FIGURE 7
+
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1948:06 2021:12
+
+    ker = 1 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    coeff_plot(biv,3,0.9)
+
+    band = 0.5
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    coeff_plot(biv,3,0.9)
+
+
+
+elif nfig=="C1"  ## FIGURE C1
+
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1959:02 2013:07
+
+    ker = 1 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.5
+    exp_par = {} # Parameters for general exponential kernel
+    bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    loop i = 2 .. nelem(COVAR)
+        plot_ols_vs_iv(bols, biv, i, 0.9,0,i,0)
+    endloop
+
+
+    # Plot Hausman Test p-value
+    series A = 0.05
+    series Ase = 0.05
+    series Hp = biv.Hpval
+    gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+
+elif nfig=="D2"  ## FIGURE D2
+
+    #Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl  1959:02 2013:07
+
+    ## NOTE The code exploits the following sequence of kernel functions: 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential.
+    ## The sequence reported in Figures 2, 5 and D2 (by column) is: Gaussian, Exponential, Epanechinikov and Rolling Window.
+
+    loop ker=1..4
+        band = 0.5
+        exp_par = {} # Parameters for general exponential kernel
+        bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+        biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+        # Plot estimated coefficients
+        loop i = 2 .. nelem(COVAR)
+            plot_ols_vs_iv(bols, biv, i, 0.9,0,i,2)
+        endloop
+
+        # Plot Hausman Test p-value
+        series A = 0.05
+        series Ase = 0.05
+        series Hp = biv.Hpval
+        gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
+
+    endloop
+
+else
+    printf "Figure number incorrectly specified.\nPlease select a figure in {1,2,3,4,5,6,7,C1,D2}"
+
+endif
+
+

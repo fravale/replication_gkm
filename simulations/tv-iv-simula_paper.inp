@@ -1,0 +1,171 @@
+################################################
+
+# Riccardo "Jack" Lucchetti and Francesco Valentini
+# "Kernel-based Time-Varying IV estimation: handle with care"
+
+# Replication of the paper: "Time-varying instrumental variable estimation"
+# Liudas Giraitis, George Kapetanios, Massimiliano Marcellino
+# Journal of Econometrics
+# https://doi.org/10.1016/j.jeconom.2020.08.013
+
+# TABLES FROM B2 TO B7 (1 to 6 in GKM)
+
+###############################################
+
+clear
+set verbose off
+
+include ketvals.gfn
+
+set seed 20210521
+
+# Estimator
+matrix H1 = {0.4,0.5}  # Governs Bandwidth H
+scalar numh1 = nelem(H1)
+
+matrix H2 = {0.4,0.5} # Governs Bandwidth L
+scalar numh2 = nelem(H2)
+
+matrix TT = {100,200,400,1000} # Sample size
+scalar numt = nelem(TT)
+
+scalar maxnd = max(TT)
+
+set stopwatch
+
+############### MONTECARLO ##############
+nulldata maxnd --preserve
+setobs 1 1 --special-time-series
+
+### Simulation design ###########################
+
+loop ntab = 1..6
+    # Design
+    rep_mc = 1000 # MC replications
+
+    gdt_store = FALSE #Store results
+    outputname = sprintf("simu_GKM_tab%g.gdt",ntab+1)
+
+    printf "Table B%g\n", ntab+1
+    #########################################
+
+    ## Automatically sets simulation parameters
+    if ntab==1 || ntab==4
+        ss = 0
+    elif ntab==2 || ntab==5
+        ss=0.2
+    elif ntab==3 || ntab==6
+        ss=0.5
+    else
+        printf "ntab not valid\n"
+    endif
+
+    if ntab>3
+        OVER = TRUE
+    else
+        OVER = FALSE
+    endif
+
+    matrix RESS = mshape(NA,(numh1*numh2*numt),8)
+    scalar ri = 0
+    loop i = 1 .. numh1
+        scalar h1 = H1[i]
+        printf "\th1 = %g\n", h1
+        flush
+        loop j = 1 .. numh2
+            scalar h2 = H2[j]
+            printf "\t\th2 = %g\n", h2
+            flush
+            loop r = 1 .. numt
+
+                scalar T = TT[r]
+                scalar ri = ri + 1
+
+                smpl  1 T
+                #eval $nobs
+                matrix MED = mshape(NA,rep_mc,8)
+
+                loop it=1..rep_mc
+
+                    # Generate parameters as normalized Random Walk
+                    # beta_t
+                    series db = normal()
+                    series be = cum(db)/sqrt(T)
+
+                    # psi_t1
+                    series dp = normal()
+                    series psi1 = cum(dp)/sqrt(T)
+
+                    if OVER==TRUE
+                        # psi_t2
+                        series dp2 = normal()
+                        series psi2 = cum(dp2)/sqrt(T)
+                    endif
+
+                    # Generate errors
+                    series e1 = normal()
+                    series e2 = normal()
+                    series e3 = normal()
+
+                    series u = ss*e1 + (1-ss)*e2   # if ss=0, no endogeneity
+                    series v = ss*e1 + (1-ss)*e3
+
+                    # Generate data
+
+                    series Z1 = normal()     # Instrument
+                    if OVER==TRUE
+                        series Z2 = normal()
+                        series X = psi1*Z1 + psi2*Z2 + v # Endogenous Explan. Var.
+                        list Z = Z1 Z2
+                    else
+                        series X = psi1*Z1 + v # Endogenous Explan. Var.
+                        list Z = Z1
+                    endif
+
+                    series y = be*X + u     # Dep. Var.
+
+                    ####################################################################
+
+                    # Estimate time-varying paramters and report Median-, Abolute-Median-Deviation and 95% Coverage
+
+                    out_ls = tv_OLS(y,X,h1,0)
+                    series beta_ls = out_ls.coeff
+                    series se_ls = out_ls.stderr
+                    series upls = beta_ls + 1.96*se_ls
+                    series bols = beta_ls - 1.96*se_ls
+                    series percls = 1*(be>bols && be<upls)
+
+                    out_iv = tv_IV(y,X,Z,h1,h2,0)
+                    series beta_iv = out_iv.coeff
+                    series se_iv = out_iv.stderr
+                    series upiv = beta_iv + 1.96*se_iv
+                    series boiv = beta_iv - 1.96*se_iv
+                    series perciv = 1*(be>boiv && be<upiv)
+
+
+                    MED[it,1] = median(beta_ls - be) # Median Deviation
+                    MED[it,3] = median(abs(beta_ls - be)) # Absolute Median Deviation
+                    MED[it,2] = median(beta_iv - be) # Median Deviation
+                    MED[it,4] = median(abs(beta_iv - be)) # Absolute Median Deviation
+                    MED[it,5] = quantile(beta_ls,0.9) - quantile(beta_ls,0.1)
+                    MED[it,6] = quantile(beta_iv,0.9) - quantile(beta_iv,0.1)
+                    MED[it,7] = mean(percls)
+                    MED[it,8] = mean(perciv)
+                endloop
+
+                RESS[ri,] = meanc(MED)
+
+            endloop # T
+        endloop # h2
+    endloop #h1
+
+    time_elaps = $stopwatch
+
+    printf "\nTime Elapsed: %g seconds\n\n", time_elaps
+
+    eval RESS
+
+    if gdt_store
+        store @outputname --matrix=RESS
+    endif
+endloop

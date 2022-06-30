@@ -1,0 +1,170 @@
+function void plot_ols_vs_iv(const bundle b_ols,
+                             const bundle b_iv,
+                             scalar v, scalar alpha, scalar key[0:1:1], scalar custom_band, scalar custom_type)
+
+    z = invcdf(z, 1 - (1-alpha)/2)
+    series ols_se  = NA
+    series olscoef = coeff_save(b_ols, v, &ols_se)
+    series iv_se   = NA
+    series ivcoef  = coeff_save(b_iv, v, &iv_se)
+
+    series ols_up  = olscoef + z * ols_se
+    series ols_dn  = olscoef - z * ols_se
+    series iv_up   = ivcoef + z * iv_se
+    series iv_dn   = ivcoef - z * iv_se
+
+    list P = olscoef ols_up ols_dn ivcoef iv_up iv_dn
+
+    if key
+        plot P
+            options with-lines time-series single-yaxis
+            literal set key off
+            literal set linetype 1 lw 2 lc rgb "#ff0000"
+            literal set linetype 2 dt 2 lc rgb "#ff0000"
+            literal set linetype 3 dt 2 lc rgb "#ff0000"
+            literal set linetype 4 lw 2 lc rgb "#0000ff"
+            literal set linetype 5 dt 2 lc rgb "#0000ff"
+            literal set linetype 6 dt 2 lc rgb "#0000ff"
+            literal set key outside
+        end plot --output=display
+    else
+        if custom_type==0
+            plot P
+                options with-lines time-series single-yaxis
+                literal set key off
+                literal set linetype 1 lw 2 lc rgb "#ff0000"
+                literal set linetype 2 dt 2 lc rgb "#ff0000"
+                literal set linetype 3 dt 2 lc rgb "#ff0000"
+                literal set linetype 4 lw 2 lc rgb "#0000ff"
+                literal set linetype 5 dt 2 lc rgb "#0000ff"
+                literal set linetype 6 dt 2 lc rgb "#0000ff"
+            end plot --output=display
+
+        elif custom_type==1
+            if custom_band==2
+                plot P
+                    options with-lines time-series single-yaxis
+                    literal set key off
+                    literal set linetype 1 lw 2 lc rgb "#ff0000"
+                    literal set linetype 2 dt 2 lc rgb "#ff0000"
+                    literal set linetype 3 dt 2 lc rgb "#ff0000"
+                    literal set linetype 4 lw 2 lc rgb "#0000ff"
+                    literal set linetype 5 dt 2 lc rgb "#0000ff"
+                    literal set linetype 6 dt 2 lc rgb "#0000ff"
+                    literal set  yrange [-0.2:0.8]
+
+                end plot --output=display
+            else
+                plot P
+                    options with-lines time-series single-yaxis
+                    literal set key off
+                    literal set linetype 1 lw 2 lc rgb "#ff0000"
+                    literal set linetype 2 dt 2 lc rgb "#ff0000"
+                    literal set linetype 3 dt 2 lc rgb "#ff0000"
+                    literal set linetype 4 lw 2 lc rgb "#0000ff"
+                    literal set linetype 5 dt 2 lc rgb "#0000ff"
+                    literal set linetype 6 dt 2 lc rgb "#0000ff"
+                    literal set  yrange [-2.5:1.5]
+                end plot --output=display
+            endif
+
+        elif custom_type==2
+            if custom_band==2
+                plot P
+                    options with-lines time-series single-yaxis
+                    literal set key off
+                    literal set linetype 1 lw 2 lc rgb "#ff0000"
+                    literal set linetype 2 dt 2 lc rgb "#ff0000"
+                    literal set linetype 3 dt 2 lc rgb "#ff0000"
+                    literal set linetype 4 lw 2 lc rgb "#0000ff"
+                    literal set linetype 5 dt 2 lc rgb "#0000ff"
+                    literal set linetype 6 dt 2 lc rgb "#0000ff"
+                    literal set  yrange [-1.5:1.5]
+
+                end plot --output=display
+            else
+                plot P
+                    options with-lines time-series single-yaxis
+                    literal set key off
+                    literal set linetype 1 lw 2 lc rgb "#ff0000"
+                    literal set linetype 2 dt 2 lc rgb "#ff0000"
+                    literal set linetype 3 dt 2 lc rgb "#ff0000"
+                    literal set linetype 4 lw 2 lc rgb "#0000ff"
+                    literal set linetype 5 dt 2 lc rgb "#0000ff"
+                    literal set linetype 6 dt 2 lc rgb "#0000ff"
+                    literal set  yrange [-4.5:4.5]
+                end plot --output=display
+            endif
+        else
+            if custom_band==2
+                plot P
+                    options with-lines time-series single-yaxis
+                    literal set key off
+                    literal set linetype 1 lw 2 lc rgb "#ff0000"
+                    literal set linetype 2 dt 2 lc rgb "#ff0000"
+                    literal set linetype 3 dt 2 lc rgb "#ff0000"
+                    literal set linetype 4 lw 2 lc rgb "#0000ff"
+                    literal set linetype 5 dt 2 lc rgb "#0000ff"
+                    literal set linetype 6 dt 2 lc rgb "#0000ff"
+                    literal set  yrange [-0.2:0.8]
+
+                end plot --output=display
+            else
+                plot P
+                    options with-lines time-series single-yaxis
+                    literal set key off
+                    literal set linetype 1 lw 2 lc rgb "#ff0000"
+                    literal set linetype 2 dt 2 lc rgb "#ff0000"
+                    literal set linetype 3 dt 2 lc rgb "#ff0000"
+                    literal set linetype 4 lw 2 lc rgb "#0000ff"
+                    literal set linetype 5 dt 2 lc rgb "#0000ff"
+                    literal set linetype 6 dt 2 lc rgb "#0000ff"
+                    literal set  yrange [-3.5:1]
+                end plot --output=display
+            endif
+
+        endif
+    endif
+
+end function
+
+
+function void plot_iva_vs_iv(const bundle b_iv_a,
+                             const bundle b_iv,
+                             scalar v, scalar alpha)
+
+    z = invcdf(z, 1 - (1-alpha)/2)
+    series iva_se  = NA
+    series ivacoef = coeff_save(b_iv_a, v, &iva_se)
+    series iv_se   = NA
+    series ivcoef  = coeff_save(b_iv, v, &iv_se)
+
+    series iva_up  = ivacoef + z * iva_se
+    series iva_dn  = ivacoef - z * iva_se
+    series iv_up   = ivcoef + z * iv_se
+    series iv_dn   = ivcoef - z * iv_se
+
+    list P = ivacoef iva_up iva_dn ivcoef iv_up iv_dn
+
+    plot P
+        options with-lines time-series single-yaxis
+        literal set key off
+        literal set linetype 1 lw 2 lc rgb "#ff0000"
+        literal set linetype 2 dt 2 lc rgb "#ff0000"
+        literal set linetype 3 dt 2 lc rgb "#ff0000"
+        literal set linetype 4 lw 2 lc rgb "#0000ff"
+        literal set linetype 5 dt 2 lc rgb "#0000ff"
+        literal set linetype 6 dt 2 lc rgb "#0000ff"
+        #literal set key outside
+    end plot --output=display
+
+
+end function
+
+
+
+
+
+
+
+

@@ -1,0 +1,151 @@
+################################################
+
+# Riccardo "Jack" Lucchetti and Francesco Valentini
+# "Kernel-based Time-Varying IV estimation: handle with care"
+
+# Replication of the paper: "Time-varying instrumental variable estimation"
+# Liudas Giraitis, George Kapetanios, Massimiliano Marcellino
+# Journal of Econometrics
+# https://doi.org/10.1016/j.jeconom.2020.08.013
+
+# TABLE B8 (Table 7 in GKM)
+
+###############################################
+
+clear
+set verbose off
+
+include ketvals.gfn
+
+### Simulation design ###########################
+
+# Design
+gdt_store = FALSE #Store results
+rep_mc = 1000 # MC replications
+
+OVER = FALSE
+
+# Estimator
+matrix H1 = {0.4,0.5}  # Governs Bandwidth H
+scalar numh1 = nelem(H1)
+
+matrix H2 = {0.4,0.5} # Governs Bandwidth L
+scalar numh2 = nelem(H2)
+
+matrix TT = {100,200,400,1000} # Sample size
+scalar numt = nelem(TT)
+
+matrix S = {0,0.2,0.5}
+scalar nums = nelem(S)
+
+scalar maxnd = max(TT)
+
+set seed 202105217
+set stopwatch
+
+############### MONTECARLO ##############
+nulldata maxnd --preserve
+setobs 1 1 --special-time-series
+
+
+matrix RESS = mshape(NA,(numh1*numh2*nums),numt)
+scalar ri = 0
+# loop for (s = 1; s<=nums; s++)
+#     scalar ss = S[s]
+#     loop for (i = 1; i <= numh1; i++)
+#         scalar h1 = H1[i]
+#         loop for (j = 1; j <= numh2; j++)
+#             scalar h2 = H2[j]
+#             scalar ri = ri + 1
+#             scalar co = 0
+#             loop for (r = 1; r <= numt; r++)
+#                 scalar T = TT[r]
+#                 scalar co = co + 1
+
+loop s = 1 .. nums
+    scalar ss = S[s]
+    printf "Endogeneity degree = %g\n", ss
+    flush
+    loop i = 1 .. numh1
+        scalar h1 = H1[i]
+        printf "\th1 = %g\n", h1
+        flush
+        loop j = 1 .. numh2
+            scalar h2 = H2[j]
+            printf "\t\th2 = %g\n", h2
+            flush
+            scalar ri = ri + 1
+            scalar co = 0
+            loop r = 1 .. numt
+                scalar T = TT[r]
+                scalar co = co + 1
+
+                smpl  1 T
+
+                matrix MED = mshape(NA,rep_mc,1)
+
+                loop it=1..rep_mc
+
+
+                    # Generate parameters as normalized Random Walk
+                    # beta_t
+                    series db = normal()
+                    series be = cum(db)/sqrt(T)
+
+                    # psi_t1
+                    series dp = normal()
+                    series psi1 = cum(dp)/sqrt(T)
+
+                    if OVER==TRUE
+                        # psi_t2
+                        series dp2 = normal()
+                        series psi2 = cum(dp2)/sqrt(T)
+                    endif
+
+                    # Generate errors
+                    series e1 = normal()
+                    series e2 = normal()
+                    series e3 = normal()
+
+                    series u = ss*e1 + (1-ss)*e2   # if ss=0, no endogeneity
+                    series v = ss*e1 + (1-ss)*e3
+
+                    # Generate data
+
+                    series Z1 = normal()     # Instrument
+                    if OVER==TRUE
+                        series Z2 = normal()
+                        series X = psi1*Z1 + psi2*Z2 + v # Endogenous Explan. Var.
+                        list Z = Z1 Z2
+                    else
+                        series X = psi1*Z1 + v # Endogenous Explan. Var.
+                        list Z = Z1
+                    endif
+
+                    series y = be*X + u     # Dep. Var.
+
+                    ####################################################################
+
+                    out_iv = tv_IV(y,X,Z,h1,h2,0)
+                    series HS = out_iv.Hstat
+                    scalar hs = HS[T/2]
+                    MED[it,1] = (hs>3.84146)
+                endloop
+
+                RESS[ri,co] = meanc(MED)
+
+            endloop # T
+        endloop # h2
+    endloop #h1
+endloop # s
+
+time_elaps = $stopwatch
+
+printf "\nTime Elapsed: %g seconds\n\n", time_elaps
+
+eval RESS
+
+if gdt_store
+    store simu_GKM_tab7.gdt --matrix=RESS
+endif
+

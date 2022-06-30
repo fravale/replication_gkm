@@ -1,0 +1,79 @@
+clear
+set verbose off
+
+################################################
+
+# Riccardo "Jack" Lucchetti and Francesco Valentini
+# "Kernel-based Time-Varying IV estimation: handle with care"
+
+# Replication of the paper: "Time-varying instrumental variable estimation"
+# Liudas Giraitis, George Kapetanios, Massimiliano Marcellino
+# Journal of Econometrics
+# https://doi.org/10.1016/j.jeconom.2020.08.013
+
+#############################################
+
+## Table 1 replication
+
+include ketvals.gfn
+include lucchetti_valentini_replication_figures_extra.inp
+
+open fedstl.bin
+data cpiaucsl unrate
+
+series Inflation = 100 * sdiff(log(cpiaucsl))
+series d_I = diff(Inflation)
+series d_UNEMP = diff(unrate)
+
+
+# Traditional
+printf "Traditional PC\n"
+flush
+list COVAR = const d_I(-1) d_UNEMP
+list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+smpl 1959:02 2013:07
+
+ker = 1 # Kernel type 1: Gaussian
+band1 = NA
+band2_5 = 0.5
+biva  = tv_IV(d_I, COVAR, INST, band1, band2_5, 0, ker)
+h_opt5 = biva.bw_parm
+printf "IV optimal \"second stage\" bandwidth parameter (h2 = %g): %g\n", band2_5, h_opt5
+flush
+
+##
+band2_7 = 0.7
+biva  = tv_IV(d_I, COVAR, INST, band1, band2_7, 0, ker)
+h_opt7 = biva.bw_parm
+
+printf "IV optimal \"second stage\" bandwidth parameter (h2 = %g): %g\n", band2_7, h_opt7
+flush
+
+
+#NKPC
+printf "NKPC\n"
+flush
+smpl full
+
+list COVAR = const d_I(-1) d_UNEMP d_I(+1)
+list INST = const d_I(-1 to -4) d_UNEMP(-1 to -4)
+
+smpl 1959:02 2013:07
+
+band2_5 = 0.5
+biva  = tv_IV(d_I, COVAR, INST, band1, band2_5, 0, ker)
+h_opt5 = biva.bw_parm
+printf "IV optimal \"second stage\" bandwidth parameter (h2 = %g): %g\n", band2_5, h_opt5
+flush
+
+##
+band2_7 = 0.7
+biva  = tv_IV(d_I, COVAR, INST, band1, band2_7, 0, ker)
+h_opt7 = biva.bw_parm
+
+printf "IV optimal \"second stage\" bandwidth parameter (h2 = %g): %g\n", band2_7, h_opt7
+
+
+
+
