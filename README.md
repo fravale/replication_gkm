@@ -16,11 +16,9 @@ simulations/  --> simulations replication
 Scripts:
 
 application_figures_and_table1/lucchetti_valentini_replication_figures.inp --> this file generates the figures included in the manuscript.
-
 NOTE: user must select the Figure number at the beginning of the script.
 
 application_figures_and_table1/lucchetti_valentini_replication_figures_extra.inp --> extras for the previous script
-
 NOTE: do not run separately.
 
 application_figures_and_table1/lucchetti_valentini_replication_table1.inp --> replicates Table 1
