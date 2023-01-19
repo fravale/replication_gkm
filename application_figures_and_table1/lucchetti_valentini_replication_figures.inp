@@ -14,7 +14,7 @@ set verbose off
 #############################################
 
 
-## SELECT FIGURE NUMBER {1,2,3,4,5,6,7,C1,D2}
+## SELECT FIGURE NUMBER {1,2,3,4,5,6,7,D1,E2,F3,F4,G5,G6}
 
 nfig = "1" #insert figure number as string
 
