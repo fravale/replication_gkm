@@ -16,7 +16,7 @@ set verbose off
 
 ## SELECT FIGURE NUMBER {1,2,3,4,5,6,7,C1,D2}
 
-nfig = "3" #insert figure number as string
+nfig = "1" #insert figure number as string
 
 ## Note: generating Figure 4 may take a time longer than expected (a few seconds), \
 ## since the optimal bandwidths need to be computed.
@@ -26,7 +26,7 @@ nfig = "3" #insert figure number as string
 # EMPRICAL APPLICATION
 ###############################################
 #load package, extra functions and data
-include ketvals.gfn #version 0.91
+include ketvals.gfn #version 1.0
 include lucchetti_valentini_replication_figures_extra.inp
 
 open fedstl.bin
@@ -183,7 +183,7 @@ elif nfig=="5" ## FIGURE 5
     list COVAR = const d_I(-1) d_UNEMP
     list INST = const d_I(-1) d_UNEMP(-1 to -4)
 
-    smpl  1948:06 2021:12
+    smpl  1948:06 2022:09
 
     ## NOTE The code exploits the following sequence of kernel functions: 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential.
     ## The sequence reported in Figures 2, 5 and D2 (by column) is: Gaussian, Exponential, Epanechinikov and Rolling Window.
@@ -221,7 +221,7 @@ elif nfig=="6" ## FIGURE 6
     exp_par = {} # Parameters for general exponential kernel
     biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
     # Plot estimated coefficients
-    coeff_plot(biv,3,0.9)
+    coeff_plot(biv,3,0.9,,{-2,1})
 
     # 1 stage residuals
     series valid = biv.valid
@@ -232,9 +232,10 @@ elif nfig=="6" ## FIGURE 6
     plot u1hat
         options --time-series --with-lines
         literal unset ylabel
+        literal set yrange [-2:12]
     end plot --output=display
 
-    smpl 1948:06 2021:12
+    smpl 1948:06 2022:09
 
     ker = 1 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
     band = 0.7
@@ -242,7 +243,7 @@ elif nfig=="6" ## FIGURE 6
     bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
     biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
     # Plot estimated coefficients
-    coeff_plot(biv,3,0.9)
+    coeff_plot(biv,3,0.9,,{-2,1})
 
     # 1 stage residuals
     series valid = biv.valid
@@ -253,6 +254,7 @@ elif nfig=="6" ## FIGURE 6
     plot u1hat
         options --time-series --with-lines
         literal unset ylabel
+        literal set yrange [-2:12]
     end plot --output=display
 
 
@@ -262,23 +264,23 @@ elif nfig=="7" #FIGURE 7
     list COVAR = const d_I(-1) d_UNEMP
     list INST = const d_I(-1) d_UNEMP(-1 to -4)
 
-    smpl 1948:06 2021:12
+    smpl 1948:06 2022:09
 
     ker = 1 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
     band = 0.7
     exp_par = {} # Parameters for general exponential kernel
     biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
     # Plot estimated coefficients
-    coeff_plot(biv,3,0.9)
+    coeff_plot(biv,3,0.9,,{-5,5})
 
     band = 0.5
     biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
     # Plot estimated coefficients
-    coeff_plot(biv,3,0.9)
+    coeff_plot(biv,3,0.9,,{-5,5})
 
 
 
-elif nfig=="C1"  ## FIGURE C1
+elif nfig=="D1"  ## FIGURE C1
 
     # Traditional
     list COVAR = const d_I(-1) d_UNEMP
@@ -304,7 +306,7 @@ elif nfig=="C1"  ## FIGURE C1
     gnuplot Hp --time-series --with-lines --output=display --single-yaxis --band=A,Ase,1 --band-style=fill {set yrange [0:1];}
 
 
-elif nfig=="D2"  ## FIGURE D2
+elif nfig=="E2"  ## FIGURE E2
 
     #Traditional
     list COVAR = const d_I(-1) d_UNEMP
@@ -333,9 +335,90 @@ elif nfig=="D2"  ## FIGURE D2
 
     endloop
 
+elif nfig=="F3"
+    include comparison_true.inp 
+
+elif nfig=="F4"
+    include comparison_pc.inp
+    
+elif nfig=="G5"  ## FIGURE 6 con kernel supporto finito
+
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1948:06 2020:03
+
+    ker = 3 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    coeff_plot(biv,3,0.9,,{-3,4})
+
+    # 1 stage residuals
+    series valid = biv.valid
+    smpl valid --dummy
+    series xhat = biv.xfitted[,3]
+    series u1hat = d_UNEMP - xhat
+
+    plot u1hat
+        options --time-series --with-lines
+        literal unset ylabel
+        literal set yrange [-2:12]
+    end plot --output=display
+
+    smpl 1948:06 2022:09
+
+    ker = 3 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    bols = tv_OLS(d_I, COVAR, band, 1, ker, exp_par) # OLS estimator
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    coeff_plot(biv,3,0.9,,{-3,4})
+
+    # 1 stage residuals
+    series valid = biv.valid
+    smpl valid --dummy
+    series xhat = biv.xfitted[,3]
+    series u1hat = d_UNEMP - xhat
+
+    plot u1hat
+        options --time-series --with-lines
+        literal unset ylabel
+        literal set yrange [-2:12]
+    end plot --output=display
+
+elif nfig=="G6"  ## FIGURE 7 con kernel supporto finito
+    # Traditional
+    list COVAR = const d_I(-1) d_UNEMP
+    list INST = const d_I(-1) d_UNEMP(-1 to -4)
+
+    smpl 1948:06 2022:09
+
+    ker = 3 # Kernel type 1: Gaussian, 2: Rolling Window, 3: Epanechinikov, 4: Exponential
+    band = 0.7
+    exp_par = {} # Parameters for general exponential kernel
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    matrix pp = {-5,5}
+    coeff_plot(biv,3,0.9,,pp)
+
+    band = 0.5
+    biv  = tv_IV(d_I, COVAR, INST, band, band, 1, ker, exp_par) # IV estimator
+    # Plot estimated coefficients
+    coeff_plot(biv,3,0.9,,pp)
+
 else
-    printf "Figure number incorrectly specified.\nPlease select a figure in {1,2,3,4,5,6,7,C1,D2}"
+    printf "Figure number incorrectly specified.\nPlease select a figure in {1,2,3,4,5,6,7,D1,E2,F3,F4,G5,G6}"
 
 endif
+
+
+
+
+
+
 
 

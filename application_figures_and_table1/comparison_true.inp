@@ -1,0 +1,82 @@
+set verbose off
+set max_verbose full
+include tvarfuncs.inp
+set seed 987987
+
+/* generate some artificial data */
+
+nulldata 512
+delete index
+setobs 1 1 --special-time-series
+
+k = 3
+DATA = gen_simulated_data(k, {-1,0,1,2})
+series y = DATA[1]
+
+list X = const || mat2list(DATA[2], "x")
+list BETAS = mat2list(DATA[3], "beta")
+
+
+
+n = nelem(X)
+# smpl y X --no-missing
+
+/* Estimate the time-varying model with a state-space model */
+
+/* bundle setup */
+mtype = 1
+bundle SSmod = set_up_ssmod(y, X, mtype)
+init_via_EM(&SSmod, y, X)
+
+scale = 10
+sel = SSmod.sel
+
+if 1
+    scalar su = scale * sqrt(SSmod.obsvar)
+
+    if mtype == 1
+        matrix param = scale * sqrt(diag(SSmod.statevar))
+    elif mtype == 2
+        matrix sb = scale * sqrt(diag(SSmod.statevar)[sel])
+        matrix sl = scale * sqrt(diag(SSmod.statevar)[sel+1])
+        matrix param = vec(sb ~ sl)'
+    endif
+
+    set lbfgs on
+
+    mle loglik = ERR ? NA : SSmod.llt
+        SSmod.obsvar = (su/scale)^2
+        tmp = param/scale
+        SSmod.statevar[diag] = tmp.^2
+        ERR = kfilter(&SSmod)
+        params su param
+    end mle --verbose
+endif
+
+ksmooth(&SSmod)
+mat2list(SSmod.state[, sel], "est_beta")
+varsel = mreverse(1 + n*(n+1)/2 - cum(seq(1,n)'))
+mat2list(sqrt(SSmod.stvar[, varsel]), "est_beta_se")
+vnames = varnames(X)
+
+
+include ketvals.gfn
+
+bundle mod = tv_OLS(y, X)
+set plot_collection on
+loop i = 1 .. n
+    series kb_se$i = 0
+    kb_$i = coeff_save(mod, i, &kb_se$i)
+endloop
+
+
+loop j = 1 .. 4
+    list COEFF$j = est_beta$j est_beta_se$j kb_$j kb_se$j beta$j
+    dest$j = sprintf("sim_comp_%d.eps",j)
+    two_band_plot(COEFF$j) #,dest$j)
+endloop
+
+
+
+
+

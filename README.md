@@ -5,7 +5,7 @@ by Riccardo (Jack) Lucchetti and Francesco Valentini.
 
 Software Requirements:
 - gretl 2022c or later (http://gretl.sourceforge.net/)
-- "ketvals" package can be installed by "File/Function packages/On server.../ketvals" (version 0.93 or above)
+- "ketvals" package can be installed by "File/Function packages/On server.../ketvals" (version 1.0 or above)
 
 Folders:
 

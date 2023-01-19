@@ -1,0 +1,77 @@
+clear
+set verbose off
+set max_verbose full
+include tvarfuncs.inp
+
+set seed 1987987
+
+open fedstl.bin
+data unrate
+data cpiaucsl
+infl = 100 * sdiff(log(cpiaucsl))
+
+y = diff(infl)
+du = diff(unrate)
+
+list X = const y(-1) du
+smpl 1959:2 2013:7
+
+
+n = nelem(X)
+
+/* Estimate the time-varying model with a state-space model */
+
+/* bundle setup */
+mtype = 1
+bundle SSmod = set_up_ssmod(y, X, mtype)
+init_via_EM(&SSmod, y, X)
+
+scale = 10
+sel = SSmod.sel
+
+if 1
+    scalar su = scale * sqrt(SSmod.obsvar)
+
+    if mtype == 1
+        matrix param = scale * sqrt(diag(SSmod.statevar))
+    elif mtype == 2
+        matrix sb = scale * sqrt(diag(SSmod.statevar)[sel])
+        matrix sl = scale * sqrt(diag(SSmod.statevar)[sel+1])
+        matrix param = vec(sb ~ sl)'
+    endif
+
+    set lbfgs on
+
+    mle loglik = ERR ? NA : SSmod.llt
+        SSmod.obsvar = (su/scale)^2
+        tmp = param/scale
+        SSmod.statevar[diag] = tmp.^2
+        ERR = kfilter(&SSmod)
+        params su param
+    end mle --verbose
+endif
+
+ksmooth(&SSmod)
+mat2list(SSmod.state[, sel], "est_beta")
+varsel = mreverse(1 + n*(n+1)/2 - cum(seq(1,n)'))
+mat2list(sqrt(SSmod.stvar[, varsel]), "est_beta_se")
+vnames = varnames(X)
+
+
+include ketvals.gfn
+
+bundle mod = tv_OLS(y, X)
+set plot_collection on
+loop i = 1 .. n
+    series kb_se$i
+    kb_$i = coeff_save(mod, i, &kb_se$i)
+endloop
+
+
+loop j = 1 .. 3
+    list COEFF$j = est_beta$j est_beta_se$j kb_$j kb_se$j
+    dest$j = sprintf("pc_comp_%d.eps",j)
+    two_band_plot(COEFF$j) #,dest$j)
+endloop
+
+
